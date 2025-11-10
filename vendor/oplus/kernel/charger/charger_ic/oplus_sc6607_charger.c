@@ -2491,6 +2491,10 @@ static int sc6607_hk_irq_handle(struct sc6607 *chip)
 	}
 	if (chg_chip->camera_on) {
 		chg_info("camera_on\n");
+		if(prev_pg && !chip->power_good) {
+			chip->hvdcp_can_enabled = false;
+			chip->qc_to_9v_count = 0;
+		}
 		goto out;
 	}
 
@@ -3166,6 +3170,26 @@ static int sc6607_enter_test_mode(struct sc6607 *chip, bool en)
 	return 0;
 }
 
+static int sc6607_set_pd_phy_tx_discard_time(struct sc6607 *chip)
+{
+	int ret = 0;
+	u8 value[3]= {SC6607_REG_TX_DISCARD, 0x00, 0x64};
+	struct i2c_msg xfer[1];
+
+	xfer[0].addr = chip->client->addr + 1,
+	xfer[0].flags = 0;
+	xfer[0].len = sizeof(value);
+	xfer[0].buf = value;
+
+	ret = i2c_transfer(chip->client->adapter, xfer, ARRAY_SIZE(xfer));
+	if (ret == ARRAY_SIZE(xfer)) {
+		return 0;
+	} else {
+		pr_err("sc6607_set_pd_phy_tx_discard_time err %d\n", ret);
+		return ret;
+	}
+}
+
 static void sc6607_set_cc_pull_up_idrive(struct sc6607 *chip)
 {
 	int ret = 0;
@@ -3277,6 +3301,7 @@ static int sc6607_init_device(struct sc6607 *chip)
 	sc6607_set_cc_pull_up_idrive(chip);
 	sc6607_set_cc_pull_down_idrive(chip);
 	sc6607_enter_test_mode(chip, true);
+	sc6607_set_pd_phy_tx_discard_time(chip);
 	sc6607_set_continuous_time(chip);
 	sc6607_set_bmc_width(chip);
 	sc6607_enter_test_mode(chip, false);
@@ -5732,13 +5757,13 @@ void oplus_chg_set_camera_on(bool val)
 			oplus_chg_set_flash_led_status(true);
 		ret = oplus_sc6607_request_otg_on(BOOST_ON_CAMERA);
 	} else {
+		chg_chip->camera_on = false;
 		if (chg_chip->charger_exist && !chg_chip->pd_svooc && chg_chip->chg_ops->get_charger_subtype() == CHARGER_SUBTYPE_PD)
 			oplus_sc6607_set_pd_config();
 		else
 			oplus_chg_set_flash_led_status(false);
 		ret = oplus_sc6607_request_otg_off(BOOST_ON_CAMERA);
 		msleep(SC6607_CAMERA_ON_DELAY);
-		chg_chip->camera_on = false;
 		sc6607_enable_charger(g_chip);
 	}
 	pr_info("val: %d", val);
@@ -6545,7 +6570,7 @@ static int sc6607_voocphy_svooc_hw_setting(struct oplus_voocphy_manager *chip)
 	ret = sc6607_field_write(g_chip, F_IBUS_OCP, reg_data); /*IBUS_OCP_UCP:4.25A*/
 	ret = sc6607_set_watchdog_timer(g_chip, 1000);
 	ret = sc6607_field_write(g_chip, F_MODE, 0x0);
-	ret = sc6607_field_write(g_chip, F_PMID2OUT_OVP, 0x05);
+	ret = sc6607_field_write(g_chip, F_PMID2OUT_OVP, 0x07); /*PMID2OUT_OVP:600mV*/
 	ret = sc6607_field_write(g_chip, F_CHG_EN, true);
 	ret = sc6607_field_write(g_chip, F_PERFORMANCE_EN, true);
 	sc6607_set_sstimeout_ucp_enable(chip, false);
@@ -7557,8 +7582,9 @@ static int sc6607_charger_remove(struct i2c_client *client)
 static void sc6607_charger_shutdown(struct i2c_client *client)
 {
 	struct oplus_chg_chip *chg_chip = oplus_chg_get_chg_struct();
+	struct sc6607 *chip = g_chip;
 
-	if (!g_chip || !chg_chip)
+	if (!g_chip || !chg_chip || !chip)
 		return;
 
 	if (g_chip) {
@@ -7569,6 +7595,8 @@ static void sc6607_charger_shutdown(struct i2c_client *client)
 		sc6607_field_write(g_chip, F_ADC_EN, 0);
 		sc6607_field_write(g_chip, F_ACDRV_MANUAL_PRE, 3);
 	}
+
+	sc6607_set_input_current_limit(chip, SC6607_DEFAULT_IBUS_MA);
 	if (chg_chip->support_shipmode_in_chgic && chg_chip->enable_shipmode)
 		sc6607_enable_shipmode(chg_chip->enable_shipmode);
 
