@@ -388,7 +388,14 @@ void wpa_hexdump_dbg(int level, const char *title, const void *buf, size_t len);
 #define printf(x, y)
 #define rand() (0)
 
-#define in_range(c, lo, up) ((int)c >= lo && (int)c <= up)
+/*
+ * in_range() is deliberately not defined here: <linux/minmax.h> provides a
+ * generic in_range(val, start, len) whose third argument is a *length*, not
+ * an upper bound like the local (c, lo, up) form. The local macro has no
+ * users -- its only caller is the commented-out isprint() below -- so it is
+ * dropped rather than guarded, to avoid leaving a definition whose meaning
+ * would depend on include order.
+ */
 /*/#define isprint(c)           in_range(c, 0x20, 0x7f)*/
 
 /*#define bswap_16(a) ((((u16)(a) << 8) & 0xff00) | (((u16)(a) >> 8) & 0xff))*/
