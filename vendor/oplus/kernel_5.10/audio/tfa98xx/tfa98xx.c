@@ -130,8 +130,9 @@ static int tfa98xx_factory_flag = 0;
 #ifdef OPLUS_ARCH_EXTENDS
 //Modify for multi-project baseline
 //static char fw_name[100] = {0};
-//==>/vendor/firmware/../../odm/firmware/tfa98xx.cnt
-static char *fw_name = "../../odm/firmware/tfa98xx.cnt";
+//==>/odm/firmware/tfa98xx.cnt (fw_path[] already searches /odm/firmware/;
+//   a "../" prefix is rejected by name_contains_dotdot() in the fw loader)
+static char *fw_name = "tfa98xx.cnt";
 module_param(fw_name, charp, 0644);
 MODULE_PARM_DESC(fw_name, "TFA98xx DSP firmware (container file) name.");
 #else
