@@ -27,30 +27,15 @@
 #define _MALISW_H_
 
 #include <linux/version.h>
-
-/**
- * MIN - Return the lesser of two values.
- * @x: value1
- * @y: value2
- *
- * As a macro it may evaluate its arguments more than once.
- * Refer to MAX macro for more details
+/*
+ * MIN()/MAX() used to be defined here. <linux/minmax.h> now provides them
+ * generically, with identical expansions, so the local copies are dropped
+ * rather than guarded: this header is reached before <linux/kernel.h> on
+ * some paths, and an #ifndef guard there would only move the redefinition
+ * diagnostic to minmax.h. Include it directly so the macros are available
+ * regardless of include order.
  */
-#define MIN(x, y)	((x) < (y) ? (x) : (y))
-
-/**
- * MAX - Return the greater of two values.
- * @x: value1
- * @y: value2
- *
- * As a macro it may evaluate its arguments more than once.
- * If called on the same two arguments as MIN it is guaranteed to return
- * the one that MIN didn't return. This is significant for types where not
- * all values are comparable e.g. NaNs in floating-point types. But if you want
- * to retrieve the min and max of two values, consider using a conditional swap
- * instead.
- */
-#define MAX(x, y)	((x) < (y) ? (y) : (x))
+#include <linux/minmax.h>
 
 /**
  * Function-like macro for suppressing unused variable warnings.
