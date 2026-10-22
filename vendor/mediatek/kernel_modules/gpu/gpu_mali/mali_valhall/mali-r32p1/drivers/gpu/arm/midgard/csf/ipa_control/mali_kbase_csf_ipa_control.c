@@ -23,6 +23,7 @@
 #include "backend/gpu/mali_kbase_clk_rate_trace_mgr.h"
 #include "mali_kbase_csf_ipa_control.h"
 #include "mali_kbase_csf_ipa_control_ex.h"
+#include <mtk_gpufreq.h>
 
 /*
  * Status flags from the STATUS register of the IPA Control interface.
@@ -261,6 +262,16 @@ static inline void calc_prfcnt_delta(struct kbase_device *kbdev,
 	}
 
 	delta_value *= prfcnt->scaling_factor;
+
+	/* This SoC has no DT clock for the GPU, so clk_rtm may not have
+	 * sampled a rate before the first counter read. If cur_gpu_rate is
+	 * still 0 at that point, pull the current GPU OPP from gpufreq so
+	 * the normalized delta is correct instead of being skipped (or
+	 * worse, computed against a stale/zero denominator later).
+	 */
+	if (kbdev->csf.ipa_control.cur_gpu_rate == 0)
+		kbdev->csf.ipa_control.cur_gpu_rate =
+			(u32)gpufreq_get_cur_freq(TARGET_GPU) * 1000;
 
 	if (kbdev->csf.ipa_control.cur_gpu_rate)
 		if (prfcnt->gpu_norm)
