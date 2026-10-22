@@ -454,10 +454,11 @@ int mtk_common_device_init(struct kbase_device *kbdev)
 	}
 #endif
 
+	mtk_notify_gpu_freq_change_fp = MTKGPUFreq_change_notify;
+
 #if IS_ENABLED(CONFIG_MALI_MIDGARD_DVFS) && IS_ENABLED(CONFIG_MALI_MTK_DVFS_POLICY)
 #if IS_ENABLED(CONFIG_MALI_MTK_DVFS_LOADING_MODE)
 	ged_dvfs_cal_gpu_utilization_ex_fp = mtk_common_cal_gpu_utilization_ex;
-	mtk_notify_gpu_freq_change_fp = MTKGPUFreq_change_notify;
 #else
 	ged_dvfs_cal_gpu_utilization_fp = mtk_common_cal_gpu_utilization;
 #endif
@@ -495,10 +496,11 @@ void mtk_common_device_term(struct kbase_device *kbdev)
 	}
 #endif
 
+	mtk_notify_gpu_freq_change_fp = NULL;
+
 #if IS_ENABLED(CONFIG_MALI_MIDGARD_DVFS) && IS_ENABLED(CONFIG_MALI_MTK_DVFS_POLICY)
 #if IS_ENABLED(CONFIG_MALI_MTK_DVFS_LOADING_MODE)
 	ged_dvfs_cal_gpu_utilization_ex_fp = NULL;
-	mtk_notify_gpu_freq_change_fp = NULL;
 #else
 	ged_dvfs_cal_gpu_utilization_fp = NULL;
 #endif

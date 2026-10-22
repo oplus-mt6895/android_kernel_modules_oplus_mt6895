@@ -302,12 +302,10 @@ kbase_ipa_control_rate_change_notify(struct kbase_clk_rate_listener *listener,
 			dev_vdbg(kbdev->dev,
 				"%s: backup clk rate:%u change while gpu power off", __func__,
 				clk_rate_hz);
-#if IS_ENABLED(CONFIG_MALI_MIDGARD_DVFS) && IS_ENABLED(CONFIG_MALI_MTK_DVFS_POLICY)
 			/* Backup clk rate value and update timer at next power on */
 			spin_lock(&ipa_ctrl->lock);
 			ipa_ctrl->cur_gpu_rate = clk_rate_hz;
 			spin_unlock(&ipa_ctrl->lock);
-#endif
 			return;
 		}
 
@@ -340,8 +338,6 @@ kbase_ipa_control_rate_change_notify(struct kbase_clk_rate_listener *listener,
 	}
 }
 
-#if IS_ENABLED(CONFIG_MALI_MIDGARD_DVFS) && \
-		IS_ENABLED(CONFIG_MALI_MTK_DVFS_POLICY)
 static
 int kbase_ipa_control_rate_change_notify_ex(struct kbase_device *kbdev,
 					       u32 clk_index, u32 clk_rate_hz)
@@ -359,7 +355,6 @@ int kbase_ipa_control_rate_change_notify_ex(struct kbase_device *kbdev,
 
 	return 0;
 }
-#endif
 
 
 void kbase_ipa_control_init(struct kbase_device *kbdev)
@@ -403,10 +398,7 @@ void kbase_ipa_control_init(struct kbase_device *kbdev)
 			clk_rtm, &listener_data->listener);
 	spin_unlock_irqrestore(&clk_rtm->lock, flags);
 
-#if IS_ENABLED(CONFIG_MALI_MIDGARD_DVFS) && \
-	IS_ENABLED(CONFIG_MALI_MTK_DVFS_POLICY)
 	mtk_common_rate_change_notify_fp = kbase_ipa_control_rate_change_notify_ex;
-#endif
 }
 KBASE_EXPORT_TEST_API(kbase_ipa_control_init);
 
