@@ -1095,9 +1095,17 @@ uint32_t kalRxIndicatePkts(IN struct GLUE_INFO *prGlueInfo,
 	for (ucIdx = 0; ucIdx < ucPktNum; ucIdx++)
 		kalRxIndicateOnePkt(prGlueInfo, apvPkts[ucIdx]);
 
-	KAL_WAKE_LOCK_TIMEOUT(prGlueInfo->prAdapter,
-		prGlueInfo->rTimeoutWakeLock, MSEC_TO_JIFFIES(
-		prGlueInfo->prAdapter->rWifiVar.u4WakeLockRxTimeout));
+	/* While in suspend mode, packet delivery is already covered by the
+	 * interrupt wake lock and the rx_thread wake lock. Re-arming the
+	 * RX timeout wake lock for every indicated batch keeps the SoC
+	 * awake for an extra WakeLockRxTO window on each packet and
+	 * prevents suspend when background traffic (e.g. multicast allowed
+	 * by the suspend packet filter) arrives at a sub-timeout rate.
+	 */
+	if (!prGlueInfo->fgIsInSuspendMode)
+		KAL_WAKE_LOCK_TIMEOUT(prGlueInfo->prAdapter,
+			prGlueInfo->rTimeoutWakeLock, MSEC_TO_JIFFIES(
+			prGlueInfo->prAdapter->rWifiVar.u4WakeLockRxTimeout));
 
 	return WLAN_STATUS_SUCCESS;
 }
@@ -4582,10 +4590,18 @@ int rx_thread(void *data)
 						    prQueueEntry));
 					}
 
-				    KAL_WAKE_LOCK_TIMEOUT(prGlueInfo->prAdapter,
-					prGlueInfo->rTimeoutWakeLock,
-					MSEC_TO_JIFFIES(prGlueInfo->prAdapter
-					->rWifiVar.u4WakeLockRxTimeout));
+					/* See kalRxIndicatePkts(): skip the
+					 * post-delivery timeout tail while in
+					 * suspend mode; delivery is already
+					 * covered by prRxThreadWakeLock.
+					 */
+					if (!prGlueInfo->fgIsInSuspendMode)
+						KAL_WAKE_LOCK_TIMEOUT(
+						prGlueInfo->prAdapter,
+						prGlueInfo->rTimeoutWakeLock,
+						MSEC_TO_JIFFIES(
+						prGlueInfo->prAdapter
+						->rWifiVar.u4WakeLockRxTimeout));
 				}
 			}
 			kalTraceEnd(); /* RX_TO_OS */
