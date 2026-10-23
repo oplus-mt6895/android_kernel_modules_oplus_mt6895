@@ -71,7 +71,7 @@ liumin@NETWORK.WIFI.ALPS06544156, 2022/05/16
 Add for lisa , It is a badboard and  sound "dada" when wifi open/close scence
 */
 extern char prj_name[];
-static bool isBadBoardPrj() {
+static bool isBadBoardPrj(void) {
    unsigned long dev_prj = simple_strtoul(prj_name,NULL,16);
    pr_info("[consys]project No.:%d\n", dev_prj);
    if (dev_prj == 0x21641 || dev_prj == 0x21642 || dev_prj == 0x21649
